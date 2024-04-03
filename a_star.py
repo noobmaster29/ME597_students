@@ -60,17 +60,20 @@ def search(maze, start, end):
         :return:
     """
 
+    """g is cost from start to current Node
+        h is heuristic based estimated cost for current Node to end Node
+        f is total cost of present node i.e. :  f = g + h"""
     # TODO PART 4 Create start and end node with initized values for g, h and f
-    start_node = Node(...)
-    start_node.g = ...
-    start_node.h = ...
-    start_node.f = ...
+    start_node = Node(None, start)
+    start_node.g = 0
+    start_node.h = 0
+    start_node.f = 0
 
     
-    end_node = Node(...)
-    end_node.g = ...
-    end_node.h = ...
-    end_node.f = ...
+    end_node = Node(None, end)
+    end_node.g = 0
+    end_node.h = 0
+    end_node.f = 0
 
     # Initialize both yet_to_visit and visited list
     # in this list we will put all node that are yet_to_visit for exploration. 
@@ -90,14 +93,15 @@ def search(maze, start, end):
     
     # TODO PART 4 what squares do we search . serarch movement is left-right-top-bottom 
     #(4 movements) from every positon
-    move  =  [[...], # go up
-              [...], # go left
-              [...], # go down
-              [...], # go right
-              [...], # go up left
-              [...], # go down left
-              [...], # go up right
-              [...]] # go down right
+    #Assumed image coordinate system
+    move  =  [[0, -1], # go up
+              [-1, 0], # go left
+              [0, 1], # go down
+              [1, 0], # go right
+              [-1, -1], # go up left
+              [-1, 1], # go down left
+              [1, -1], # go up right
+              [1, 1]] # go down right
 
 
     """
@@ -118,7 +122,7 @@ def search(maze, start, end):
                 d) else move the child to yet_to_visit list
     """
     # TODO PART 4 find maze has got how many rows and columns 
-    no_rows, no_columns = ...
+    no_rows, no_columns = np.shape(maze) #2d grid
     
 
     # Loop until you find the end
@@ -145,7 +149,7 @@ def search(maze, start, end):
 
         # Pop current node out off yet_to_visit list, add to visited list
         yet_to_visit_list.pop(current_index)
-        visited_list.append(current_node)
+        visited_list.append(current_node) #Visted nodes are added
 
         # test if goal is reached or not, if yes then return the path
         if current_node == end_node:
@@ -157,11 +161,15 @@ def search(maze, start, end):
 
         for new_position in move: 
 
-            # TODO PART 4 Get node position
-            node_position = (...)
+            # TODO PART 4 Get node position 
+            #new position = current + move_value
+            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
 
             # TODO PART 4 Make sure within range (check if within maze boundary)
-            if (...):
+            if (node_position[0] > (no_rows - 1) or
+                node_position[0] < 0 or
+                node_position[1] > (no_columns - 1) or
+                node_position[1] < 0):
                 continue
 
             # Make sure walkable terrain
@@ -179,13 +187,24 @@ def search(maze, start, end):
         for child in children:
   
             # TODO PART 4 Child is on the visited list (search entire visited list)
-            if len(...) > 0:
-                continue
+            #Create a new list containing all the visited child nodes that match current child node
+            if len(visited_child for visited_child in visited_list if visited_child ==child) > 0:
+                continue #skip calc if child is already in visited
 
             # TODO PART 4 Create the f, g, and h values
-            child.g = ...
+            child.g = current_node.g + 1 #is 1 the right cost?
+            """If we want to used distance as cost
+            dx = abs(child.position[0] - current_node.position[0])
+            dy = abs(child.position[1] - current_node.position[1])
+
+            if dx+dy == 1: #cost for horizontal/vertical motion would remain 1
+                child.g = current_node.g + 1
+            else: #diagnoal 
+                child.g = current_node.g + 1.4
+            """
             ## Heuristic costs calculated here, this is using eucledian distance
-            child.h = ...
+            child.h = sqrt((child.position[0] - end_node.position[0]) ** 2 + \
+                           (child.position[1] - end_node.position[1]) ** 2)
 
             child.f = child.g + child.h
 
