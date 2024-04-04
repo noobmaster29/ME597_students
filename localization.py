@@ -57,10 +57,18 @@ class localization(Node):
 
     ###Particle filter from lab 3
     def initParticleFilter(self):
-        print("Initializing particle filter through subscription")
-        self.odom_sub=message_filters.Subscriber(self, odom, "/odom", qos_profile=odom_qos)
-        self.imu_sub=message_filters.Subscriber(self, Imu, "/imu", qos_profile=odom_qos)
-        
+        print("initializing particle filter through subscription")
+        # TODO Part 5: write your subscriber to the particle filter
+        # generated pose.
+        self.pf_pose_sub = self.create_subscription(odom, "/pf_pose", self.pf_pose_callback, 10)
+    
+    def pf_pose_callback(self, pose_msg):
+
+
+        self.pose=[ pose_msg.pose.pose.position.x,
+                    pose_msg.pose.pose.position.y,
+                    euler_from_quaternion(pose_msg.pose.pose.orientation),
+                    pose_msg.header.stamp]
         
     ###Particle filter end
         
@@ -70,7 +78,6 @@ class localization(Node):
         self.imu_sub=message_filters.Subscriber(self, Imu, "/imu", qos_profile=odom_qos)
         
         time_syncher=message_filters.ApproximateTimeSynchronizer([self.odom_sub, self.imu_sub], queue_size=10, slop=0.1)
-        
         time_syncher.registerCallback(self.fusion_callback)
         
     

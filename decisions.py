@@ -46,7 +46,7 @@ class decision_maker(Node):
         self.reachThreshold=0.1 #adjust if doesn't reach target
 
         # TODO PART 5 your localization type
-        self.localizer=localization(kalmanFilter) #Does this work?
+        self.localizer=localization(particlesFilter) #Does this work?
 
 
         
@@ -79,6 +79,8 @@ class decision_maker(Node):
     # This is for the rviz2 interface
     def designPathFor(self, msg: PoseStamped):
         
+
+        print('interface callback')
         spin_once(self.localizer)
         
         if self.localizer.getPose() is  None:
@@ -92,14 +94,14 @@ class decision_maker(Node):
 
     
     def timerCallback(self):
-        
+        print('timer intiated')
         spin_once(self.localizer)
 
         if self.localizer.getPose() is  None:
             print("waiting for odom msgs ....")
             return
         
-        
+        print(self.localizer.getPose())
         vel_msg=Twist()
         
         if self.goal is None:

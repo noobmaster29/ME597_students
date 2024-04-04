@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     rclpy.init()
 
-    map_ = mapManipulator(filename_= "/home/turtlebot5/ME597_students/simulation/room.yaml")
+    map_ = mapManipulator(filename_= "/home/turtlebot5/ME597_students/your_map/room.yaml")
     #map_ = mapManipulator()
 
     node = Node("mapPublisher")

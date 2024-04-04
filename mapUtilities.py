@@ -16,7 +16,7 @@ from utilities import *
 class mapManipulator(Node):
 
 
-    def __init__(self, filename_: str = "room.yaml", laser_sig=0.01):
+    def __init__(self, filename_: str = "room.yaml", laser_sig=0.1):
         
         
         super().__init__('likelihood_field')
@@ -157,31 +157,44 @@ class mapManipulator(Node):
         x,y = pos
         return floor( (-self.o_x + x)/self.getResolution()), -floor( -self.height + (-self.o_y + y)/self.getResolution() )
 
-
+    # TODO part 4: See through this method and explain how it works  
+    # to the TA
     def make_likelihood_field(self):
+        #Maps each point in environment to a probability value based on distance to nearest obstacle
         
+        #Load map's image array
         image_array=self.image_array
 
+        #Nearest neighbor lookup
         from sklearn.neighbors import KDTree
         
-        
-
+        #Find indices of occupied cells
         indices = np.where(image_array < 10)
         
+        #Convert occupied cell indices to positions
         occupied_points = [self.cell_2_position([i, j]) for i, j in zip(indices[0], indices[1])]
+        
+        #List of all positions in map
         all_positions = [self.cell_2_position([i, j]) for i in range(image_array.shape[0]) for j in range(image_array.shape[1])]
 
+        #Indexs occupied points with KDTree
         kdt=KDTree(occupied_points)
 
+        #Query to KDTree
         dists=kdt.query(all_positions, k=1)[0][:]
+
+        #Calculate probabilites (Gaussian)
         probabilities=np.exp( -(dists**2) / (2*self.laser_sig**2))
         
+        #Reshape the probability to match the image/map dimensions (which is likelihood field)
         likelihood_field=probabilities.reshape(image_array.shape)
         
+        #Convert likelihood field to image format
         likelihood_field_img=np.array(255-255*probabilities.reshape(image_array.shape), dtype=np.int32)
         
         self.likelihood_img=likelihood_field_img
-        
+
+        #Occupied points array
         self.occ_points=np.array(occupied_points)
         
                 
@@ -224,7 +237,6 @@ class mapManipulator(Node):
         offset = -self.height*self.getResolution()
 
 
-
         grid.info.origin.position.x, grid.info.origin.position.y = self.getOrigin()[0], +self.getOrigin()[1] - offset
 
 
@@ -255,11 +267,90 @@ class mapManipulator(Node):
         
     def map_localation_query(self, laser_msg: LaserScan):
         
-        # this part was for kidnapping section of the particle filter algorithm
-        # the complete algorithm is in this repo
-        # https://github.com/aalghooneh/ros2-particlefilter-python
+        points = convertScanToCartesian(laser_msg)
+        
 
-        pass
+        # Define the range for x, y, and theta
+        x_min, x_max = -10, 10
+        y_min, y_max = -10, 10
+        
+        theta_min, theta_max = -M_PI, M_PI
+
+        # Number of particles to generate
+        num_particles = 1000
+
+        # Generate random particles within the given range
+        particles_x = np.random.uniform(x_min, x_max, num_particles)
+        particles_y = np.random.uniform(y_min, y_max, num_particles)
+        particles_theta = np.random.uniform(theta_min, theta_max, num_particles)
+
+        
+        # Transform points using each particle
+        max_score=-1000
+        
+
+
+        for j in range(10):
+            
+
+            score_list=[]
+            poses_list=[]            
+            
+            for i in range(num_particles):
+                x = particles_x[i]
+                y = particles_y[i]
+                theta = particles_theta[i]
+
+                transformed_x = points[:,0] * math.cos(theta) - points[:,1] * math.sin(theta) + x
+                transformed_y = points[:,0] * math.sin(theta) + points[:,1] * math.cos(theta) + y
+
+                scores = list(map(lambda x, y: self.calculate_score(x, y), transformed_x, transformed_y))
+                score=math.prod(scores)
+                if  score> 0:
+                    score_list.append(score)
+                    poses_list.append([x,y,theta])
+
+            sum_weights=sum(score_list)
+            if ( sum_weights > 0):
+                
+                score_list/=sum_weights
+                
+                x,y,theta=poses_list[np.argmax(np.array(score_list))]
+                
+                tx=points[:,0] * math.cos(theta) - points[:,1] * math.sin(theta) + x
+                ty=points[:,0] * math.sin(theta) + points[:,1] * math.cos(theta) + y
+                
+                weighted_avg=np.average(np.array(poses_list.copy()), axis=0, weights=score_list)
+                weighted_std = np.sqrt(np.average((np.array(poses_list.copy()) - weighted_avg) ** 2, axis=0, weights=score_list))
+
+                print(weighted_std)
+                
+                particles_x = np.random.normal(weighted_avg[0], 0.2, num_particles)
+                particles_y = np.random.uniform(weighted_avg[1], 0.2, num_particles)
+                particles_theta = np.random.uniform(weighted_avg[2], 0.2, num_particles)
+            else:
+                particles_x = np.random.uniform(x_min, x_max, num_particles)
+                particles_y = np.random.uniform(y_min, y_max, num_particles)
+                particles_theta = np.random.uniform(theta_min, theta_max, num_particles)        
+        
+        
+
+        plt.plot(tx, ty, '*')
+        
+
+
+        
+        
+        plt.plot(self.occ_points[:,0], self.occ_points[:,1], '.')
+        
+        
+        plt.axis('off')
+        
+        
+        plt.title('PGM Image')
+        
+        
+        plt.show()
             
 
 
