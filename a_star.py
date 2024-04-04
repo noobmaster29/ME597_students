@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from math import sqrt
-
+from tqdm import tqdm
 
 class Node:
     """
@@ -93,7 +93,7 @@ def search(maze, start, end):
     
     # TODO PART 4 what squares do we search . serarch movement is left-right-top-bottom 
     #(4 movements) from every positon
-    #Assumed image coordinate system
+    #image coordinate system
     move  =  [[0, -1], # go up
               [-1, 0], # go left
               [0, 1], # go down
@@ -102,7 +102,14 @@ def search(maze, start, end):
               [-1, 1], # go down left
               [1, -1], # go up right
               [1, 1]] # go down right
-
+    """move = [[0, 1],   # go up
+        [-1, 0],  # go left
+        [0, -1],  # go down
+        [1, 0],   # go right
+        [-1, 1],  # go up left
+        [-1, -1], # go down left
+        [1, 1],   # go up right
+        [1, -1]]  # go down right"""
 
     """
         1) We first get the current node by comparing all f cost and selecting the lowest cost node for further expansion
@@ -124,9 +131,11 @@ def search(maze, start, end):
     # TODO PART 4 find maze has got how many rows and columns 
     no_rows, no_columns = np.shape(maze) #2d grid
     
-
+    print("Maze length: ", len(maze))
+    print("max_iterations: ", max_iterations)
+    print("Maze size: ", no_rows, no_columns)
     # Loop until you find the end
-    
+    #with tqdm(total=max_iterations, unit='iterations') as pbar:
     while len(yet_to_visit_list) > 0:
         
         # Every time any node is referred from yet_to_visit list, counter of limit operation incremented
@@ -163,13 +172,14 @@ def search(maze, start, end):
 
             # TODO PART 4 Get node position 
             #new position = current + move_value
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+            node_position = (current_node.position[0] + new_position[0], \
+                            current_node.position[1] + new_position[1])
 
             # TODO PART 4 Make sure within range (check if within maze boundary)
-            if (node_position[0] > (no_rows - 1) or
-                node_position[0] < 0 or
-                node_position[1] > (no_columns - 1) or
-                node_position[1] < 0):
+            if (node_position[0] > (no_rows - 1) 
+                or node_position[0] < 0 
+                or node_position[1] > (no_columns - 1) 
+                or node_position[1] < 0):
                 continue
 
             # Make sure walkable terrain
@@ -185,26 +195,30 @@ def search(maze, start, end):
         # Loop through children
         
         for child in children:
-  
+
             # TODO PART 4 Child is on the visited list (search entire visited list)
             #Create a new list containing all the visited child nodes that match current child node
-            if len(visited_child for visited_child in visited_list if visited_child ==child) > 0:
+            #if len([visited_child for visited_child in visited_list if visited_child ==child]) > 0:
+            if child in visited_list:
                 continue #skip calc if child is already in visited
 
             # TODO PART 4 Create the f, g, and h values
             child.g = current_node.g + 1 #is 1 the right cost?
-            """If we want to used distance as cost
-            dx = abs(child.position[0] - current_node.position[0])
+            #If we want to used distance as cost
+            """dx = abs(child.position[0] - current_node.position[0])
             dy = abs(child.position[1] - current_node.position[1])
 
             if dx+dy == 1: #cost for horizontal/vertical motion would remain 1
                 child.g = current_node.g + 1
             else: #diagnoal 
                 child.g = current_node.g + 1.4
-            """
+            #"""
             ## Heuristic costs calculated here, this is using eucledian distance
             child.h = sqrt((child.position[0] - end_node.position[0]) ** 2 + \
                            (child.position[1] - end_node.position[1]) ** 2)
+            ##Manhattan distance
+            #child.h = abs(child.position[0]-end_node.position[0]) + \
+            #                abs(child.position[1]-end_node.position[1])
 
             child.f = child.g + child.h
 

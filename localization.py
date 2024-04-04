@@ -14,6 +14,7 @@ from nav_msgs.msg import Odometry as odom
 
 from sensor_msgs.msg import Imu
 from kalman_filter import kalman_filter
+from particleFilter import particleFilter
 
 from rclpy import init, spin, spin_once
 
@@ -22,7 +23,7 @@ import message_filters
 
 
 
-rawSensors=0; kalmanFilter=1
+rawSensors=0; kalmanFilter=1; particlesFilter=2
 
 odom_qos=QoSProfile(reliability=2, durability=2, history=1, depth=10)
 
@@ -42,6 +43,9 @@ class localization(Node):
         elif type==kalmanFilter:
             self.initKalmanfilter()
             self.kalmanInitialized = False
+        #Add in particle filter from lab3
+        elif type==particlesFilter:
+            self.initParticleFilter()
         else:
             print("We don't have this type for localization", sys.stderr)
             return            
@@ -51,6 +55,15 @@ class localization(Node):
     def initRawSensors(self):
         self.create_subscription(odom, "/odom", self.odom_callback, qos_profile=odom_qos)
 
+    ###Particle filter from lab 3
+    def initParticleFilter(self):
+        print("Initializing particle filter through subscription")
+        self.odom_sub=message_filters.Subscriber(self, odom, "/odom", qos_profile=odom_qos)
+        self.imu_sub=message_filters.Subscriber(self, Imu, "/imu", qos_profile=odom_qos)
+        
+        
+    ###Particle filter end
+        
     def initKalmanfilter(self):
         
         self.odom_sub=message_filters.Subscriber(self, odom, "/odom", qos_profile=odom_qos)
@@ -74,9 +87,9 @@ class localization(Node):
             # TODO PART In case you went through KF 
             # in the last lab you can put your gains here
             # and try your code with KF in loop.
-            Q=...
-            R=...
-            P=...
+            Q=0.1*np.eye(6)
+            R=0.4*np.eye(4)
+            P=Q.copy()
                         
             self.kf=kalman_filter(P,Q,R, x)
             

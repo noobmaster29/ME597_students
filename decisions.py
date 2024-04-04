@@ -14,7 +14,7 @@ from geometry_msgs.msg import Twist
 from rclpy.qos import QoSProfile
 from nav_msgs.msg import Odometry as odom
 
-from localization import localization, rawSensors, kalmanFilter
+from localization import localization, rawSensors, kalmanFilter, particlesFilter
 
 from planner import TRAJECTORY_PLANNER, POINT_PLANNER, planner
 from controller import controller, trajectoryController
@@ -43,10 +43,10 @@ class decision_maker(Node):
         publishing_period=1/rate
 
         # TODO PART 5 choose your threshold
-        self.reachThreshold=...
+        self.reachThreshold=0.1 #adjust if doesn't reach target
 
         # TODO PART 5 your localization type
-        self.localizer=localization(...)
+        self.localizer=localization(kalmanFilter) #Does this work?
 
 
         
@@ -57,7 +57,9 @@ class decision_maker(Node):
         
         elif motion_type==TRAJECTORY_PLANNER:
             # TODO PART 5 Bonus Put the gains that you conclude from lab 2
-            self.controller=trajectoryController(...)      
+            #Lab 2 values were klp = 0.5, klv = 0.5, kap = 0.8, kav = 0.6
+            #lab 3 (given) values were klp=0.2, klv=0.5, kap=0.8, kav=0.6
+            self.controller=trajectoryController(klp = 0.5, klv = 0.5, kap = 0.8, kav = 0.6)      
             self.planner=planner(TRAJECTORY_PLANNER)
         
         else:
@@ -82,7 +84,9 @@ class decision_maker(Node):
         if self.localizer.getPose() is  None:
             print("waiting for odom msgs ....")
             return
-        
+        # Clear the existing path
+        self.publishPathOnRviz2([])
+
         self.goal=self.planner.plan([self.localizer.getPose()[0], self.localizer.getPose()[1]],
                                      [msg.pose.position.x, msg.pose.position.y])
 
@@ -116,7 +120,8 @@ class decision_maker(Node):
             self.controller.PID_angular.logger.save_log()
             self.controller.PID_linear.logger.save_log()
 
-
+            # Clear the visualized path
+            #self.publishPathOnRviz2([])
             
             self.goal = None
             print("waiting for the new position input, use 2D nav goal on map")
@@ -183,7 +188,7 @@ def main(args=None):
 
 
 
-
+#For simulation, use ros2 launch turtlebot3_cartographer cartographer.launch.py instead of slam
 if __name__=="__main__":
     argParser=argparse.ArgumentParser(description="point or trajectory") 
     argParser.add_argument("--motion", type=str, default="trajectory")
